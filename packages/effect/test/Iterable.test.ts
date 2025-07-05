@@ -1,4 +1,4 @@
-import { describe, it } from "@effect/vitest"
+import { assertType, describe, it } from "@effect/vitest"
 import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Iterable as Iter, Number, Option, pipe } from "effect"
 import type { Predicate } from "effect/Predicate"
@@ -458,4 +458,43 @@ describe("Iterable", () => {
 
     deepStrictEqual(Iter.countBy(new Map([["a", 1], ["b", 2], ["c", 3]]), ([key, n]) => n % 2 === 1 && key !== "c"), 1)
   })
+
+  it("all/ tuple", () => {
+    assertType<Iterable<[number, string]>>(Iter.all([[1], ["hello"]]))
+    deepStrictEqual(toArray(Iter.all([])), [])
+    deepStrictEqual(toArray(Iter.all([[1, 2], ["hello", "world"]])), [[1, "hello"], [2, "world"]])
+    deepStrictEqual(toArray(Iter.all([[1], ["hello", "world"]])), [[1, "hello"]])
+    deepStrictEqual(toArray(Iter.all([[1], ["hello"]])), [[1, "hello"]])
+    deepStrictEqual(toArray(Iter.all([[1], []])), [])
+  })
+
+  it("all/ iterable", () => {
+    assertType<Iterable<Array<number>>>(Iter.all([[1], [2]]))
+    assertType<Iterable<Array<number>>>(Iter.all(new Set([[1], [2]])))
+
+    deepStrictEqual(toArray(Iter.all([])), [])
+    deepStrictEqual(toArray(Iter.all([[]])), [])
+    deepStrictEqual(toArray(Iter.all([[1], [2]])), [[1, 2]])
+    deepStrictEqual(toArray(Iter.all(new Set([[1], [2]]))), [[1, 2]])
+    deepStrictEqual(toArray(Iter.all([[1], []])), [])
+  })
+
+  it("all/ struct", () => {
+    assertType<Iterable<{ a: number; b: string }>>(Iter.all({ a: [1], b: ["hello"] }))
+    deepStrictEqual(
+      toArray(Iter.all({ a: [1, 2], b: ["hello", "world"] })),
+      [{ a: 1, b: "hello" }, { a: 2, b: "world" }]
+    )
+    deepStrictEqual(
+      toArray(Iter.all({ a: [1], b: ["hello", "world"] })),
+      [{ a: 1, b: "hello" }]
+    )
+    deepStrictEqual(
+      toArray(Iter.all({ a: [1], b: ["hello"] })),
+      [{ a: 1, b: "hello" }]
+    )
+    deepStrictEqual(toArray(Iter.all({ a: [1], b: [] })), [])
+    deepStrictEqual(toArray(Iter.all({})), [])
+  })
+
 })

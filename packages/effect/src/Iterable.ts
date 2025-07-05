@@ -1117,3 +1117,96 @@ export const countBy: {
     return count
   }
 )
+
+/**
+ * Combines a structure of `Iterable`s into a single `Iterable` returning
+ * values with the same structure.
+ *
+ * **Details**
+ *
+ * This function takes a structure of `Iterable`s (a tuple, struct, or iterable)
+ * and produces a single `Iterable` that returns values from each iterable in the
+ * input structure while all `Iterable`s return values. If one input `Iterable`
+ * is short, excess elements of the longer `Iterable`s are discarded. The
+ * structure of the input is preserved in the output.
+ *
+ * - If the input is a tuple (e.g., an array), the result will be an `Iterable`
+ *   returning tuples with the same length.
+ * - If the input is a struct (e.g., an object), the result will be an `Iterable`
+ *   returning structs with the same keys.
+ * - If the input is an iterable, the result will be a two-dimensional `Iterable`.
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * const names: Iterable.Iterable<string> = ['John', 'Jane']
+ * const ages:: Iterable.Iterable<number> = [25, 32]
+ *
+ * //      ┌─── Iterable<[string, number]>
+ * //      ▼
+ * const tuples = Array.from(Iterable.all([names, ages]))
+ * console.log(tuples)
+ * // Output:
+ * // [[ 'John', 25 ], [ 'Jane', 32 ]]
+ *
+ * //      ┌─── Iterable<{ name: string; age: number; }>
+ * //      ▼
+ * const structs = Array.from(Iterable.all({ name: names, age: ages }))
+ * console.log(structs)
+ * // Output:
+ * // [{ name: 'John', age: 25 }, { name: 'Jane', age: 32 }]
+ * ```
+ */
+// @ts-expect-error
+export const all: <const I extends Iterable<Iterable<any>> | Record<string, Iterable<any>>>(
+  input: I
+) => [I] extends [ReadonlyArray<Iterable<any>>] ? Iterable<
+    { -readonly [K in keyof I]: [I[K]] extends [Iterable<infer A>] ? A : never }
+  >
+  : [I] extends [Iterable<Iterable<infer A>>] ? Iterable<Array<A>>
+  : Iterable<{ -readonly [K in keyof I]: [I[K]] extends [Iterable<infer A>] ? A : never }> = (
+    input: Iterable<Iterable<any>> | Record<string, Iterable<any>>
+  ): Iterable<any> => ({
+      [Symbol.iterator]() {
+        if (Symbol.iterator in input) {
+          const iterators = Array.from(input).map((iterable) => iterable[Symbol.iterator]())
+          function next() {
+            if (iterators.length < 1) {
+              return { done: true, value: undefined }
+            }
+            const out: Array<any> = []
+            for (const iterator of iterators) {
+              const result = iterator.next()
+              if (result.done) {
+                return { done: true, value: undefined }
+              }
+              out.push(result.value)
+            }
+            return { value: out, done: false }
+          }
+          return { next }
+        }
+        const iterators: Record<string, Iterator<any>> = {}
+        const keys = Object.keys(input)
+        for (const key of keys) {
+          iterators[key] = input[key][Symbol.iterator]()
+        }
+        function next() {
+          if (keys.length < 1) {
+            return { done: true, value: undefined }
+          }
+          const out: Record<string, any> = {}
+          for (const key of keys) {
+            const iterator = iterators[key]
+            const result = iterator.next()
+            if (result.done) {
+              return { done: true, value: undefined }
+            }
+            out[key] = result.value
+          }
+          return { value: out, done: false }
+        }
+        return { next }
+      }
+    })
