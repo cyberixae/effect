@@ -1308,4 +1308,46 @@ describe("Array", () => {
       { a: "a", b: "ab", c: ["a", "ab", "aab"], ["__proto__"]: ["a", "ab", "aab"] }
     ])
   })
+
+  it("transpose", () => {
+    deepStrictEqual(
+      Arr.transpose([
+        [11, 12, 13],
+        [21, 22, 23]
+      ]),
+      [
+        [11, 21],
+        [12, 22],
+        [13, 23]
+      ]
+    )
+    deepStrictEqual(
+      Arr.transpose([
+        [11, 12],
+        [21],
+        [31, 32],
+        [],
+        [51, 52, 53]
+      ]),
+      [
+        [11, 21, 31, 51],
+        [12, 32, 52],
+        [53]
+      ]
+    )
+  })
+
+  it("flatTranspose", () => {
+    deepStrictEqual(
+      Arr.flatTranspose([
+        [11, 12],
+        [21],
+        [31, 32],
+        [],
+        [51, 52, 53]
+      ]),
+      [11, 21, 31, 51, 12, 32, 52, 53]
+    )
+  })
+
 })

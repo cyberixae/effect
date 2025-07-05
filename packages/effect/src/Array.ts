@@ -3529,3 +3529,75 @@ export {
    */
   let_ as let
 }
+
+/**
+ * Transposes a 2-dimensional array. Similar to `zip` but works for an arbitrary amount
+ * of child arrays. Guarantees that no elements get discarded, even when the lengths of
+ * the child arrays are uneven.
+ *
+ * Transposing the same array twice is guaranteed to produce original input when all
+ * child arrays have identical non-zero length.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * assert.deepStrictEqual(
+ *   Array.transpose([
+ *     [11, 12, 13],
+ *     [21, 22, 23]
+ *   ]),
+ *   [
+ *     [11, 21],
+ *     [12, 22],
+ *     [13, 23]
+ *   ]
+ * )
+ *
+ * assert.deepStrictEqual(
+ *   Array.transpose([
+ *     [11, 12],
+ *     [21],
+ *     [31, 32],
+ *     [],
+ *     [51, 52, 53]
+ *   ]),
+ *   [
+ *     [11, 21, 31, 51],
+ *     [12, 32, 52],
+ *     [53]
+ *   ]
+ * )
+ * ```
+ */
+export const transpose: {
+  <T>(a: NonEmptyReadonlyArray<NonEmptyReadonlyArray<T>>): NonEmptyArray<NonEmptyArray<T>>
+  <T>(a: ReadonlyArray<Iterable<T>>): Array<NonEmptyArray<T>>
+} = (self) => fromIterable(moduleIterable.transpose(self)) as any
+
+/**
+ * Transposes, then flattens, a 2-dimensional array. A `flatZip` variant which guarantees
+ * that no elements get discarded.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * assert.deepStrictEqual(
+ *   Array.flatTranspose([
+ *     [11, 12],
+ *     [21],
+ *     [31, 32],
+ *     [],
+ *     [51, 52, 53]
+ *   ]),
+ *   [11, 21, 31, 51, 12, 32, 52, 53]
+ * )
+ * ```
+ */
+export const flatTranspose: {
+  <T>(a: NonEmptyReadonlyArray<NonEmptyReadonlyArray<T>>): NonEmptyArray<T>
+  <T>(a: ReadonlyArray<Iterable<T>>): Array<T>
+} = (self) => fromIterable(moduleIterable.flatTranspose(self)) as any

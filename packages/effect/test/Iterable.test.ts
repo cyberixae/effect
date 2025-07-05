@@ -458,4 +458,58 @@ describe("Iterable", () => {
 
     deepStrictEqual(Iter.countBy(new Map([["a", 1], ["b", 2], ["c", 3]]), ([key, n]) => n % 2 === 1 && key !== "c"), 1)
   })
+
+  it("transpose", () => {
+    deepStrictEqual(
+      toArray(Iter.transpose([
+        [11, 12, 13],
+        [21, 22, 23]
+      ])),
+      [
+        [11, 21],
+        [12, 22],
+        [13, 23]
+      ]
+    )
+    deepStrictEqual(
+      toArray(Iter.transpose([
+        [11, 12],
+        [21],
+        [31, 32],
+        [],
+        [51, 52, 53]
+      ])),
+      [
+        [11, 21, 31, 51],
+        [12, 32, 52],
+        [53]
+      ]
+    )
+  })
+
+  it("flatTranspose", () => {
+    deepStrictEqual(
+      Array.from(Iter.flatTranspose([
+        [10, 11],
+        [20],
+        [30, 31],
+        [],
+        [50, 51, 52]
+      ])),
+      [10, 20, 30, 50, 11, 31, 51, 52]
+    )
+    deepStrictEqual(
+      pipe(
+        Iter.flatTranspose([
+          Iter.makeBy(() => 'a'),
+          Iter.makeBy(() => 'b'),
+          Iter.makeBy(() => 'c'),
+        ]),
+        Iter.take(8),
+        Array.from,
+      ),
+      ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b']
+    )
+  })
+
 })

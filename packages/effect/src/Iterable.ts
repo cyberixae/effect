@@ -9,6 +9,7 @@ import type { Either } from "./Either.js"
 import * as E from "./Either.js"
 import * as Equal from "./Equal.js"
 import { dual, identity } from "./Function.js"
+import * as internalArray from "./internal/array.js"
 import type { Option } from "./Option.js"
 import * as O from "./Option.js"
 import { isBoolean } from "./Predicate.js"
@@ -1117,3 +1118,104 @@ export const countBy: {
     return count
   }
 )
+
+/**
+ * Transposes an array of `Iterable`s into a single `Iterable` returning arrays
+ * containing elements from each iterator. Similar to `zip` but works for an arbitrary
+ * amount of `Iterable`s. Guarantees that no elements get discarded, even when
+ * the amount of elements available from the `Iterable`s are uneven.
+ *
+ * Guarantees positional symmetry when all `Iterable`s produce identical non-zero
+ * amount of elements.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * assert.deepStrictEqual(
+ *   Array.from(Iterable.transpose([
+ *     [11, 12, 13],
+ *     [21, 22, 23]
+ *   ])),
+ *   [
+ *     [11, 21],
+ *     [12, 22],
+ *     [13, 23]
+ *   ]
+ * )
+ *
+ * assert.deepStrictEqual(
+ *   Array.from(Iterable.transpose([
+ *     [10, 11],
+ *     [20],
+ *     [30, 31],
+ *     [],
+ *     [50, 51, 52]
+ *   ])),
+ *   [
+ *     [10, 20, 30, 50],
+ *     [11, 31, 51],
+ *     [52]
+ *   ]
+ * )
+ * ```
+ */
+export const transpose = <A>(iterables: ReadonlyArray<Iterable<A>>): Iterable<NonEmptyArray<A>> => ({
+  [Symbol.iterator]() {
+    const iterators = iterables.map((iterable) => iterable[Symbol.iterator]())
+    function next(): IteratorResult<NonEmptyArray<A>> {
+      const values = iterators.flatMap((iterator) => {
+        const result = iterator.next()
+        if (result.done) {
+          return []
+        }
+        return [result.value]
+      })
+      if (internalArray.isNonEmptyArray(values)) {
+        return { value: values, done: false }
+      }
+      return { done: true, value: undefined }
+    }
+    return { next }
+  }
+})
+
+/**
+ * Transposes, then flattens, an array of `Iterable`s into a single `Iterable` returning
+ * elements from each iterator in round-robin order. Suitable for combining several infinite
+ * `Iterable`s into one, where `appendAll` and `prependAll` would causes some elements
+ * to become inaccessible through iteration. A `flatZip` variant which guarantees
+ * that no elements get discarded.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Iterable, pipe } from "effect"
+ *
+ * assert.deepStrictEqual(
+ *   Array.from(Iterable.flatTranspose([
+ *     [10, 11],
+ *     [20],
+ *     [30, 31],
+ *     [],
+ *     [50, 51, 52]
+ *   ])),
+ *   [10, 20, 30, 50, 11, 31, 51, 52]
+ * )
+ *
+ * assert.deepStrictEqual(
+ *   pipe(
+ *     Iterable.flatTranspose([
+ *       Iterable.makeBy(() => 'a'),
+ *       Iterable.makeBy(() => 'b'),
+ *       Iterable.makeBy(() => 'c'),
+ *     ]),
+ *     Iterable.take(8),
+ *     Array.from,
+ *   ),
+ *   ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b']
+ * )
+ * ```
+ */
+export const flatTranspose = <A>(iterables: ReadonlyArray<Iterable<A>>): Iterable<A> => flatten(transpose(iterables))
